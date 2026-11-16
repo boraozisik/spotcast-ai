@@ -1,7 +1,7 @@
 """Batch inference for the website: compute everything ahead of time, write JSON files.
 
     uv run spotcast-publish --out web/public/data     # local preview
-    (GitHub Actions runs it every 3 hours and pushes the files to the `site-data` branch)
+    (GitHub Actions runs it every hour and pushes the files to the `site-data` branch)
 
 The website has no backend: it only reads these files. Nothing is open to the internet
 that could be abused, nothing sleeps, nothing costs money. The code that runs here is the
@@ -31,7 +31,7 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import requests
 
-from spotcast.config import HISTORY_END, HISTORY_START, TIMEZONE
+from spotcast.config import HISTORY_END, HISTORY_START, HTTP_HEADERS, TIMEZONE
 from spotcast.data import fetch_all_spots
 from spotcast.locations import BY_NAME, PLACES, SPOTS, TRAINING_LOCATIONS, Location
 from spotcast.model import (
@@ -411,7 +411,9 @@ def published_age_hours(now: datetime) -> float | None:
         return None
     url = f"https://raw.githubusercontent.com/{repo}/site-data/meta.json"
     try:
-        generated_at = requests.get(url, timeout=20).json()["generated_at"]
+        generated_at = requests.get(url, headers=HTTP_HEADERS, timeout=20).json()[
+            "generated_at"
+        ]
     except (requests.RequestException, ValueError, KeyError):
         return None
     return (now - datetime.fromisoformat(generated_at)).total_seconds() / 3600

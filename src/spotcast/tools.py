@@ -21,7 +21,7 @@ import pandas as pd
 import requests
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from spotcast.config import REQUEST_TIMEOUT_SECONDS
+from spotcast.config import HTTP_HEADERS, REQUEST_TIMEOUT_SECONDS
 from spotcast.data import fetch_all_spots, fetch_conditions
 from spotcast.explain import turkish_date
 from spotcast.locations import (
@@ -206,6 +206,7 @@ def find_location(args: FindLocationArgs) -> dict:
     response = requests.get(
         GEOCODING_URL,
         params={"name": args.name, "count": 5, "language": "tr", "countryCode": "TR"},
+        headers=HTTP_HEADERS,
         timeout=REQUEST_TIMEOUT_SECONDS,
     )
     response.raise_for_status()

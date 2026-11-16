@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import { useT } from "@/lib/i18n";
 
-// The job is scheduled every 3 h, but GitHub may skip runs: 12 h means several were missed
+// The job is scheduled hourly, but GitHub skips runs and Open-Meteo sometimes refuses them:
+// 12 h means many attempts were missed
 // or failed, worth telling the visitor.
 const STALE_AFTER_HOURS = 12;
 
