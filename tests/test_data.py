@@ -31,7 +31,7 @@ def api(monkeypatch):
     """A fake Open-Meteo that answers every location in one list, and records requests."""
     requests_seen = []
 
-    def fake_get(url, params, timeout):
+    def fake_get(url, params, timeout, **kwargs):
         requests_seen.append(params)
         count = len(str(params["latitude"]).split(","))
         variables = params["hourly"]
@@ -96,7 +96,7 @@ def test_too_many_requests_waits_and_retries(monkeypatch):
     answers = [FakeResponse({}, status=429), FakeResponse({"hourly": {}})]
     waits = []
     monkeypatch.setattr(
-        data.requests, "get", lambda url, params, timeout: answers.pop(0)
+        data.requests, "get", lambda url, params, timeout, **kwargs: answers.pop(0)
     )
     monkeypatch.setattr(data.time, "sleep", waits.append)
 
@@ -123,7 +123,7 @@ def test_slow_server_is_waited_out_with_growing_pauses(monkeypatch):
     ]
     waits = []
 
-    def fake_get(url, params, timeout):
+    def fake_get(url, params, timeout, **kwargs):
         answer = answers.pop(0)
         if isinstance(answer, Exception):
             raise answer
@@ -147,3 +147,15 @@ def test_a_bad_request_is_not_retried(monkeypatch):
     with pytest.raises(data.requests.HTTPError):
         data._get_with_retries("https://example", {})
     assert len(calls) == 1
+
+
+def test_requests_say_who_is_calling(monkeypatch):
+    seen = {}
+
+    def fake_get(url, params, timeout, headers=None):
+        seen.update(headers or {})
+        return FakeResponse({"hourly": {}})
+
+    monkeypatch.setattr(data.requests, "get", fake_get)
+    data._get_with_retries("https://example", {})
+    assert seen["User-Agent"].startswith("SpotCast/")

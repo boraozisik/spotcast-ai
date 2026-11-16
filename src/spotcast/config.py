@@ -10,6 +10,11 @@ FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 MARINE_URL = "https://marine-api.open-meteo.com/v1/marine"
 ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 TIMEZONE = "Europe/Istanbul"
+# Say who is calling: anonymous "python-requests" traffic from shared cloud IPs is the kind
+# that bot filters treat most harshly
+HTTP_HEADERS = {
+    "User-Agent": "SpotCast/1.0 (+https://github.com/boraozisik/spotcast-ai)"
+}
 REQUEST_TIMEOUT_SECONDS = 20  # one request for 29 places takes longer than for one
 
 # Project root is two folders above this file: src/spotcast/config.py

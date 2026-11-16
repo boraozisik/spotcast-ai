@@ -11,6 +11,7 @@ from spotcast.config import (
     ARCHIVE_URL,
     DATA_DIR,
     FORECAST_URL,
+    HTTP_HEADERS,
     MARINE_URL,
     REQUEST_TIMEOUT_SECONDS,
     TIMEZONE,
@@ -109,7 +110,12 @@ def _get_with_retries(
     for attempt in range(len(waits) + 1):
         last = attempt == len(waits)
         try:
-            response = requests.get(url, params=params, timeout=REQUEST_TIMEOUT_SECONDS)
+            response = requests.get(
+                url,
+                params=params,
+                headers=HTTP_HEADERS,
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
         except (requests.ConnectionError, requests.Timeout):
             if last:
                 raise

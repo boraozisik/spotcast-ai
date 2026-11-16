@@ -141,7 +141,7 @@ def test_fetch_retries_a_dropped_connection(monkeypatch):
         def raise_for_status(self):
             pass
 
-    def flaky_get(url, params, timeout):
+    def flaky_get(url, params, timeout, **kwargs):
         calls.append(url)
         if len(calls) < 3:
             raise data.requests.Timeout("slow")
@@ -157,7 +157,7 @@ def test_fetch_retries_a_dropped_connection(monkeypatch):
 def test_fetch_gives_up_after_the_last_retry(monkeypatch):
     from spotcast import data
 
-    def always_down(url, params, timeout):
+    def always_down(url, params, timeout, **kwargs):
         raise data.requests.ConnectionError("down")
 
     monkeypatch.setattr(data.requests, "get", always_down)
@@ -286,7 +286,9 @@ def test_age_of_the_live_data(monkeypatch):
             return {"generated_at": "2026-11-14T10:00"}
 
     monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
-    monkeypatch.setattr(publish.requests, "get", lambda url, timeout: Answer())
+    monkeypatch.setattr(
+        publish.requests, "get", lambda url, timeout, **kwargs: Answer()
+    )
     assert publish.published_age_hours(datetime(2026, 11, 14, 16, 30)) == 6.5
     monkeypatch.delenv("GITHUB_REPOSITORY")
     assert publish.published_age_hours(datetime(2026, 11, 14, 16, 30)) is None

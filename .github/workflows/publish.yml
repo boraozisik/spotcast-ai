@@ -1,4 +1,4 @@
-# Batch inference for the website: every 3 hours, run SpotCast's model on the latest
+# Batch inference for the website: every hour, run SpotCast's model on the latest
 # forecast and publish the results as JSON on the `site-data` branch. The Netlify site
 # reads them from there. No server, no secrets, no cost.
 #
@@ -9,10 +9,14 @@ name: Publish site data
 
 on:
   schedule:
-    # Every 3 hours (UTC); :17 avoids the busy top of the hour. GitHub delays or skips
-    # scheduled runs when it is busy: with "every 6 hours" only ~2 runs a day happened
-    # (measured Nov 2026, gaps of 9-16 h), so the site often looked stale.
-    - cron: "17 */3 * * *"
+    # Every hour (UTC); :17 avoids the busy top of the hour. Two problems, measured in
+    # Nov 2026: GitHub skips many scheduled runs (about 2 a day ran, whether every 6 h or
+    # every 3 h), and Open-Meteo refused the TLS connection from GitHub's shared runner
+    # IPs in about 6 of 10 runs (it works from elsewhere; its terms say shared hosts hit
+    # limits sooner). Each run gets another runner and usually another IP, so more
+    # attempts mean more successful updates. A failed attempt is quiet while the site's
+    # data is fresh (see spotcast.publish.main), and costs nothing in a public repo.
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 # This job pushes the data branch, so it may write repository contents. Nothing else.
@@ -55,6 +59,30 @@ jobs:
           else
             echo "No approved model yet: using the cached or freshly trained one."
           fi
+
+      # Which Open-Meteo hosts answer from this runner, and how fast (on the run page).
+      # Evidence for the "shared IP" problem above; it never fails the run.
+      - name: Check Open-Meteo from this runner
+        continue-on-error: true
+        run: |
+          {
+            echo "### Open-Meteo from this runner"
+            echo ""
+            echo "| Host | HTTP | Connect (s) | TLS done (s) | Total (s) |"
+            echo "|---|---|---|---|---|"
+            for url in \
+              "https://api.open-meteo.com/v1/forecast?latitude=38.24&longitude=26.38&hourly=wind_speed_10m" \
+              "https://marine-api.open-meteo.com/v1/marine?latitude=38.24&longitude=26.38&hourly=wave_height" \
+              "https://archive-api.open-meteo.com/v1/archive?latitude=38.24&longitude=26.38&start_date=2026-01-01&end_date=2026-01-02&hourly=wind_speed_10m" \
+              "https://geocoding-api.open-meteo.com/v1/search?name=Izmir&count=1"; do
+              host=$(echo "$url" | cut -d/ -f3)
+              result=$(curl -sS -o /dev/null -m 20 \
+                -A "SpotCast/1.0 (+https://github.com/boraozisik/spotcast-ai)" \
+                -w "%{http_code} | %{time_connect} | %{time_appconnect} | %{time_total}" \
+                "$url" 2>/dev/null) || result="failed (curl exit $?) | | |"
+              echo "| $host | $result |"
+            done
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       # If Open-Meteo is unreachable while the live data is still fresh (< 12 h), this
       # step ends green with a warning and published=false; it fails (and e-mails) only
