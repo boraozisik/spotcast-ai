@@ -1,0 +1,1 @@
+{"any":{"earliest_hour":9,"latest_hour":18,"windows":[{"spot":"Kuşadası Pamucak","date":"2026-11-23","start":"11:00","end":"14:00","hours":4,"good_hours":0,"marginal_hours":4,"avg_wind_knots":13.3,"max_wave_metres":0.96,"days_ahead":2,"notes":[]}]},"weekend":{"earliest_hour":9,"latest_hour":18,"windows":[]}}
